@@ -5,12 +5,18 @@ import hopla.routesmart.service.SeedService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
+
 
 @Component
 public class SeedRunner implements CommandLineRunner {
 
     @Autowired
     private SeedService seedService;
+
+    @Autowired
+    private ApplicationContext appContext;
 
     @Override
     public void run(String... args) throws Exception {
@@ -20,11 +26,14 @@ public class SeedRunner implements CommandLineRunner {
             seedService.seedNodes("classpath:seed/nodes.geojson");
             seedService.seedEdges("classpath:seed/edges.geojson");
             System.out.println("Seeding process completed.");
-        }
-        else if (command.equals("seed-dummy")) {
+
+            SpringApplication.exit(appContext, () -> 0);
+        } else if (command.equals("seed-dummy")) {
             System.out.println("Starting the dummy seeding process...");
             seedService.seedDummyTripsAndParcels();
             System.out.println("Dummy seeding process completed.");
+
+            SpringApplication.exit(appContext, () -> 0);
         }
     }
 }
