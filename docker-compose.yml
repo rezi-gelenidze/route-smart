@@ -1,30 +1,35 @@
 version: '3.8'
 
 services:
+  # PostGIS database
   db:
     image: postgis/postgis:13-3.1
-    container_name: postgis
+    restart: unless-stopped
+    container_name: db
     environment:
-      POSTGRES_DB: route_smart_db
-      POSTGRES_USER: routesmart_app
-      POSTGRES_PASSWORD: app_password
-    ports:
-        - "5433:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-
-  app:
-    build: .
-    container_name: route-smart-app
+      
+  # Spring Boot Application
+  backend:
+    build:
+      context: .
+    container_name: backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/routesmart_app
-      SPRING_DATASOURCE_USERNAME: routesmart_app
-      SPRING_DATASOURCE_PASSWORD: app_password
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     ports:
       - "8080:8080"
+    restart: unless-stopped
     depends_on:
-      - db
-
+      - db  # Wait for the db service to be ready before starting the backend service
+    env_file:
+      - .env  # Load environment variables from the .env
+      
 volumes:
   pgdata:
