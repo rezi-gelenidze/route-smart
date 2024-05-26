@@ -2,11 +2,13 @@ package hopla.routesmart.repository;
 
 import hopla.routesmart.dto.ParcelDTO;
 import hopla.routesmart.entity.Parcel;
+import hopla.routesmart.entity.Trip;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ParcelRepository extends JpaRepository<Parcel, Long> {
     // Retrieves detailed information about parcels that are part of a precomputed path
@@ -39,4 +41,8 @@ public interface ParcelRepository extends JpaRepository<Parcel, Long> {
 
     @Query(value = FIND_MATCHING_PARCELS_QUERY_SIMPLE, nativeQuery = true)
     List<Long> findMatchingParcelsSimple(@Param("startNodeId") Long startNodeId, @Param("endNodeId") Long endNodeId);
+
+    boolean existsByIdentifier(Long identifier);
+
+    Optional<Parcel> findByIdentifier(Long identifier);
 }

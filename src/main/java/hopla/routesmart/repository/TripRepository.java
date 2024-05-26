@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TripRepository extends JpaRepository<Trip, Long> {
     // Retrieves detailed information about trips that match the given start and end node IDs
@@ -39,4 +40,8 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 
     @Query(value = FIND_MATCHING_TRIPS_QUERY_SIMPLE, nativeQuery = true)
     List<Long> findMatchingTripsSimple(@Param("startNodeId") Long startNodeId, @Param("endNodeId") Long endNodeId);
+
+    boolean existsByIdentifier(Long identifier);
+
+    Optional<Trip> findByIdentifier(Long identifier);
 }
