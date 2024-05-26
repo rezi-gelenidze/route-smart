@@ -1,92 +1,69 @@
 package hopla.routesmart.service;
 
 import hopla.routesmart.entity.Parcel;
-import hopla.routesmart.entity.PrecomputedPath;
 import hopla.routesmart.entity.Trip;
+import hopla.routesmart.repository.ParcelRepository;
 import hopla.routesmart.repository.PrecomputedPathRepository;
 import hopla.routesmart.repository.TripRepository;
-import hopla.routesmart.repository.ParcelRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class MatchingService {
+
     @Autowired
-    private TripRepository tripRepository;
+    private PrecomputedPathRepository precomputedPathRepository;
 
     @Autowired
     private ParcelRepository parcelRepository;
 
     @Autowired
-    private PrecomputedPathRepository precomputedPathRepository;
+    private TripRepository tripRepository;
 
     /**
      * Matches trips with parcels based on precomputed paths.
      *
      * @param tripId Trip ID to match
-     * @return Set of parcel IDs that match the trip
+     * @return Set of matched parcels
      */
     public Set<Long> matchTripWithParcels(Long tripId) {
-        Set<Long> matchingParcelIds = new HashSet<>();
-
+        Set<Long> matchingParcels = new HashSet<>();
         Trip trip = tripRepository.findById(tripId).orElse(null);
-        if (trip == null) {
-            return matchingParcelIds;
+
+        if (trip != null) {
+            List<Long> parcels = precomputedPathRepository.findMatchingParcels(
+                    trip.getFromLocation().getId(),
+                    trip.getToLocation().getId()
+            );
+
+            matchingParcels.addAll(parcels);
         }
 
-        List<PrecomputedPath> paths = precomputedPathRepository.findByStartNodeIdAndEndNodeId(
-                trip.getFromLocation().getId(),
-                trip.getToLocation().getId()
-        );
-
-        for (PrecomputedPath path : paths) {
-            String pathNodeIds = path.getPath();
-
-            List<Parcel> parcels = parcelRepository.findAll();
-            for (Parcel parcel : parcels) {
-                String parcelPathRegex = ".*" + parcel.getFromLocation().getId() + ".*" + parcel.getToLocation().getId() + ".*";
-                if (pathNodeIds.matches(parcelPathRegex)) {
-                    matchingParcelIds.add(parcel.getId());
-                }
-            }
-        }
-
-        return matchingParcelIds;
+        return matchingParcels;
     }
 
     /**
      * Matches parcels with trips based on precomputed paths.
      *
      * @param parcelId Parcel ID to match
-     * @return Set of trip IDs that match the parcel
+     * @return Set of matched trips
      */
-    public Set<Long> matchParcelWithTrips(Long parcelId) {
-        Set<Long> matchingTripIds = new HashSet<>();
-
+    public Set<Trip> matchParcelWithTrips(Long parcelId) {
+        Set<Trip> matchingTrips = new HashSet<>();
         Parcel parcel = parcelRepository.findById(parcelId).orElse(null);
-        if (parcel == null) {
-            return matchingTripIds;
+
+        if (parcel != null) {
+            List<Trip> trips = precomputedPathRepository.findMatchingTrips(
+                    parcel.getFromLocation().getId(),
+                    parcel.getToLocation().getId()
+            );
+            matchingTrips.addAll(trips);
         }
 
-        List<PrecomputedPath> paths = precomputedPathRepository.findPathsBySubpath(
-                "%" + parcel.getFromLocation().getId() + "%",
-                "%" + parcel.getToLocation().getId() + "%"
-        );
-
-        for (PrecomputedPath path : paths) {
-            List<Trip> trips = tripRepository.findAll();
-            for (Trip trip : trips) {
-                if (path.getStartNode().getId().equals(trip.getFromLocation().getId()) &&
-                        path.getEndNode().getId().equals(trip.getToLocation().getId())) {
-                    matchingTripIds.add(trip.getId());
-                }
-            }
-        }
-
-        return matchingTripIds;
+        return matchingTrips;
     }
 }
