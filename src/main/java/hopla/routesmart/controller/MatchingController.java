@@ -1,5 +1,7 @@
 package hopla.routesmart.controller;
 
+import hopla.routesmart.dto.CreateParcelDTO;
+import hopla.routesmart.dto.CreateTripDTO;
 import hopla.routesmart.entity.Node;
 import hopla.routesmart.entity.Parcel;
 import hopla.routesmart.entity.Trip;
@@ -26,21 +28,6 @@ public class MatchingController {
     @Autowired
     private NodeRepository nodeRepository;
 
-    @GetMapping("/trip/{tripId}")
-    public Object matchTripWithParcels(
-            @PathVariable Long tripId,
-            @RequestParam(required = false, defaultValue = "false") Boolean verbose
-    ) {
-        Trip trip = tripRepository.findById(tripId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found with ID " + tripId)
-        );
-
-        Long fromNodeId = trip.getFromLocation().getId();
-        Long toNodeId = trip.getToLocation().getId();
-
-        return findMatchingParcelsWithVerboseFlag(fromNodeId, toNodeId, verbose);
-    }
-
     @GetMapping("/trip/")
     public Object matchTripWithParcels(
             @RequestParam(required = false) Long fromId,
@@ -55,19 +42,53 @@ public class MatchingController {
         return findMatchingParcelsWithVerboseFlag(fromNodeId, toNodeId, verbose);
     }
 
-    @GetMapping("/parcel/{parcelId}")
-    public Object matchParcelWithTrips(
-            @PathVariable Long parcelId,
-            @RequestParam(required = false, defaultValue = "false") Boolean verbose
-    ) {
-        Parcel parcel = parcelRepository.findById(parcelId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parcel not found with ID " + parcelId)
+    @PostMapping("/trip/")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Trip createTrip(@RequestBody CreateTripDTO tripDTO) {
+        // Check if trip already exists with the same identifier
+        if (tripRepository.existsByIdentifier(tripDTO.getIdentifier())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Trip already exists with identifier " + tripDTO.getIdentifier());
+        }
+
+        // Check if from and to nodes exist
+        Node fromNode = nodeRepository.findById(tripDTO.getFromId()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "From node not found with ID " + tripDTO.getFromId())
+        );
+        Node toNode = nodeRepository.findById(tripDTO.getToId()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "To node not found with ID " + tripDTO.getToId())
         );
 
-        Long fromNodeId = parcel.getFromLocation().getId();
-        Long toNodeId = parcel.getToLocation().getId();
+        // Create and save trip
+        Trip trip = new Trip();
+        trip.setIdentifier(tripDTO.getIdentifier());
+        trip.setFromLocation(fromNode);
+        trip.setToLocation(toNode);
 
-        return findMatchingTripsWithVerboseFlag(fromNodeId, toNodeId, verbose);
+        return tripRepository.save(trip);
+    }
+
+    @GetMapping("/trip/{tripId}")
+    public Object matchTripWithParcels(
+            @PathVariable Long tripId,
+            @RequestParam(required = false, defaultValue = "false") Boolean verbose
+    ) {
+        Trip trip = tripRepository.findByIdentifier(tripId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found with ID " + tripId)
+        );
+
+        Long fromNodeId = trip.getFromLocation().getId();
+        Long toNodeId = trip.getToLocation().getId();
+
+        return findMatchingParcelsWithVerboseFlag(fromNodeId, toNodeId, verbose);
+    }
+
+    @DeleteMapping("/trip/{tripId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTrip(@PathVariable Long tripId) {
+        Trip trip = tripRepository.findByIdentifier(tripId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found with ID " + tripId)
+        );
+        tripRepository.delete(trip);
     }
 
     @GetMapping("/parcel/")
@@ -82,6 +103,55 @@ public class MatchingController {
         Long toNodeId = getNodeId(toId, toDisplay);
 
         return findMatchingTripsWithVerboseFlag(fromNodeId, toNodeId, verbose);
+    }
+
+    @PostMapping("/parcel/")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Parcel createParcel(@RequestBody CreateParcelDTO parcelDTO) {
+        // Check if parcel already exists with the same identifier
+        if (parcelRepository.existsByIdentifier(parcelDTO.getIdentifier())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Parcel already exists with identifier " + parcelDTO.getIdentifier());
+        }
+
+        // Check if from and to nodes exist
+        Node fromNode = nodeRepository.findById(parcelDTO.getFromId()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "From node not found with ID " + parcelDTO.getFromId())
+        );
+        Node toNode = nodeRepository.findById(parcelDTO.getToId()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "To node not found with ID " + parcelDTO.getToId())
+        );
+
+        // Create and save parcel
+        Parcel parcel = new Parcel();
+        parcel.setIdentifier(parcelDTO.getIdentifier());
+        parcel.setFromLocation(fromNode);
+        parcel.setToLocation(toNode);
+
+        return parcelRepository.save(parcel);
+    }
+
+    @GetMapping("/parcel/{parcelId}")
+    public Object matchParcelWithTrips(
+            @PathVariable Long parcelId,
+            @RequestParam(required = false, defaultValue = "false") Boolean verbose
+    ) {
+        Parcel parcel = parcelRepository.findByIdentifier(parcelId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parcel not found with ID " + parcelId)
+        );
+
+        Long fromNodeId = parcel.getFromLocation().getId();
+        Long toNodeId = parcel.getToLocation().getId();
+
+        return findMatchingTripsWithVerboseFlag(fromNodeId, toNodeId, verbose);
+    }
+
+    @DeleteMapping("/parcel/{parcelId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteParcel(@PathVariable Long parcelId) {
+        Parcel parcel = parcelRepository.findByIdentifier(parcelId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parcel not found with ID " + parcelId)
+        );
+        parcelRepository.delete(parcel);
     }
 
     // Helper method to get node ID from either ID or display name
