@@ -50,6 +50,8 @@ capabilities).
 *Map of Georgia with Destinations, Apkhazia and Samachablo is not drawn as logistics is temporarily disabled due to Russian
 occupation.*
 
+[View Map on Google Maps](https://www.google.com/maps/d/u/0/edit?mid=1bXmfwIW-t9tvpHyvGA0sK_kCt-5noVE)
+
 ### Graph Representation
 
 Each destination (node) is connected to other destinations via edges. These edges are weighted with the distance and
