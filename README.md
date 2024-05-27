@@ -47,7 +47,7 @@ the map as a GeoJSON file and imported it into the database using the PostGIS ex
 capabilities).
 
 ![](./docs/map.png)
-*Map of Georgia with Destinations, Apkhazia and Samachablo is not drawn as logistics is impossible due to Russian
+*Map of Georgia with Destinations, Apkhazia and Samachablo is not drawn as logistics is temporarily disabled due to Russian
 occupation.*
 
 ### Graph Representation
