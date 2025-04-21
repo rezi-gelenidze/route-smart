@@ -7,41 +7,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface TripRepository extends JpaRepository<Trip, Long> {
     // Retrieves detailed information about trips that match the given start and end node IDs
-    String FIND_MATCHING_TRIPS_QUERY_VERBOSE = """
-        SELECT t.identifier AS tripId, t.from_node_id AS fromId, n1.name AS fromDisplay, t.to_node_id AS toId, n2.name AS toDisplay
-            FROM trip t
-                JOIN node n1 ON t.from_node_id = n1.id
-                JOIN node n2 ON t.to_node_id = n2.id
-            WHERE EXISTS(
-                SELECT 1 FROM precomputed_path pp
-                    WHERE pp.path ~ CONCAT('(^|,)', :startNodeId, '(,|$).*?(^|,)', :endNodeId, '(,|$)')
-                        AND pp.start_node_id = t.from_node_id
-                        AND pp.end_node_id = t.to_node_id
-            )
+    String QUERY_FIND_MATCHING_TRIPS = """
+        SELECT t.id AS id, t.from_node AS fromId, t.to_node AS toId
+        FROM trip t
+        WHERE EXISTS(
+            SELECT 1 FROM precomputed_path pp
+                WHERE pp.path ~ CONCAT('(^|,)', :startNodeId, '(,|$).*?(^|,)', :endNodeId, '(,|$)')
+                AND pp.start_node = t.from_node
+                AND pp.end_node = t.to_node
+        )
     """;
 
-    // Retrieves IDs of trips that match the given start and end node IDs
-    String FIND_MATCHING_TRIPS_QUERY_SIMPLE = """
-        SELECT t.identifier FROM trip t
-            WHERE EXISTS(
-                SELECT 1 FROM precomputed_path pp
-                    WHERE pp.path ~ CONCAT('(^|,)', :startNodeId, '(,|$).*?(^|,)', :endNodeId, '(,|$)')
-                        AND pp.start_node_id = t.from_node_id
-                        AND pp.end_node_id = t.to_node_id
-            )
-    """;
-
-    @Query(value = FIND_MATCHING_TRIPS_QUERY_VERBOSE, nativeQuery = true)
-    List<TripDTO> findMatchingTripsVerbose(@Param("startNodeId") Long startNodeId, @Param("endNodeId") Long endNodeId);
-
-    @Query(value = FIND_MATCHING_TRIPS_QUERY_SIMPLE, nativeQuery = true)
-    List<Long> findMatchingTripsSimple(@Param("startNodeId") Long startNodeId, @Param("endNodeId") Long endNodeId);
-
-    boolean existsByIdentifier(Long identifier);
-
-    Optional<Trip> findByIdentifier(Long identifier);
+    @Query(value = QUERY_FIND_MATCHING_TRIPS, nativeQuery = true)
+    List<TripDTO> findMatchingTrips(@Param("startNodeId") Long startNodeId, @Param("endNodeId") Long endNodeId);
 }
