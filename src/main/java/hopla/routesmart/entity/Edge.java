@@ -1,8 +1,11 @@
 package hopla.routesmart.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 import org.locationtech.jts.geom.LineString;
 
+
+@Data
 @Entity
 public class Edge {
     @Id
@@ -10,65 +13,21 @@ public class Edge {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "from_node_id")
-    private Node fromNode;
+    @JoinColumn(name = "from_node")
+    private Node from;
 
     @ManyToOne
-    @JoinColumn(name = "to_node_id")
-    private Node toNode;
+    @JoinColumn(name = "to_node")
+    private Node to;
 
-    private double distance;
-    private int complexity;
+    // Road distance between the two nodes in kilometers (edge cost factor)
+    @Column
+    private Double distance;
+
+    // Weighted complexity of the edge (edge cost factor)
+    @Column
+    private Integer complexity;
 
     @Column(columnDefinition = "GEOMETRY(LineString, 4326)")
     private LineString geom;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Node getFromNode() {
-        return fromNode;
-    }
-
-    public void setFromNode(Node fromNode) {
-        this.fromNode = fromNode;
-    }
-
-    public Node getToNode() {
-        return toNode;
-    }
-
-    public void setToNode(Node toNode) {
-        this.toNode = toNode;
-    }
-
-    public double getDistance() {
-        return distance;
-    }
-
-    public void setDistance(double distance) {
-        this.distance = distance;
-    }
-
-    public int getComplexity() {
-        return complexity;
-    }
-
-    public void setComplexity(int complexity) {
-        this.complexity = complexity;
-    }
-
-    public LineString getGeom() {
-        return geom;
-    }
-
-    public void setGeom(LineString geom) {
-        this.geom = geom;
-    }
 }

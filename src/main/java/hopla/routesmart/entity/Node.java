@@ -1,41 +1,22 @@
 package hopla.routesmart.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 import org.locationtech.jts.geom.Point;
 
+
+@Data
 @Entity
 public class Node {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    // Display name of the node
+    @Column(nullable = false)
     private String name;
 
+    // Geometry field for the node's location on the map
     @Column(columnDefinition = "GEOMETRY(Point, 4326)")
     private Point geom;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Point getGeom() {
-        return geom;
-    }
-
-    public void setGeom(Point geom) {
-        this.geom = geom;
-    }
 }
