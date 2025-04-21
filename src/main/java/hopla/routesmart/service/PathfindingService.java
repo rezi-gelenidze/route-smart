@@ -6,39 +6,33 @@ import hopla.routesmart.entity.PrecomputedPath;
 import hopla.routesmart.repository.EdgeRepository;
 import hopla.routesmart.repository.PrecomputedPathRepository;
 
+import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PathfindingService {
-    @Autowired
-    private EdgeRepository edgeRepository;
+    private final EdgeRepository edgeRepository;
+    private final PrecomputedPathRepository precomputedPathRepository;
 
-    @Autowired
-    private PrecomputedPathRepository precomputedPathRepository;
-
-    @Autowired
-    private GraphService graphService;
-
+    private final GraphService graphService;
 
     private Map<Long, Node> nodeMap;
     private Map<Long, List<Edge>> edgeMap;
 
-    @PostConstruct
-    private void preloadData() {
+
+    public void precomputePaths() {
+        System.out.println("Loading graph data...");
         List<Node> nodes = graphService.getAllNodes();
         List<Edge> edges = graphService.getAllEdges();
 
         nodeMap = nodes.stream().collect(Collectors.toMap(Node::getId, node -> node));
-        edgeMap = edges.stream().collect(Collectors.groupingBy(edge -> edge.getFromNode().getId()));
-    }
-
-    public void precomputePaths() {
+        edgeMap = edges.stream().collect(Collectors.groupingBy(edge -> edge.getFrom().getId()));
 
         for (Node startNode : nodeMap.values()) {
             for (Node endNode : nodeMap.values()) {
@@ -51,8 +45,6 @@ public class PathfindingService {
                 }
             }
         }
-
-
     }
 
     private List<PrecomputedPath> findPaths(Node startNode, Node endNode) {
@@ -63,7 +55,7 @@ public class PathfindingService {
         Set<Long> explored = new HashSet<>();
 
         // Frontier of nodes to explore, sorted by score
-        PriorityQueue<PathNode> frontier = new PriorityQueue<>(Comparator.comparingDouble(PathNode::getScore));
+        PriorityQueue<PathNode> frontier = new PriorityQueue<>(Comparator.comparingDouble(PathNode::score));
 
         // Node to Score mapping
         Map<Node, Double> gScores = new HashMap<>();
@@ -75,23 +67,21 @@ public class PathfindingService {
         while (!frontier.isEmpty() && foundPaths.size() < 3) {
             PathNode current = frontier.poll();
 
-            if (current.getNode().getId().equals(endNode.getId())) {
+            if (current.node().getId().equals(endNode.getId())) {
                 foundPaths.add(reconstructPath(current));
                 continue;
             }
 
             // Mark node as explored
-            explored.add(current.getNode().getId());
+            explored.add(current.node().getId());
 
-            List<Edge> neighbors = edgeMap.getOrDefault(current.getNode().getId(), Collections.emptyList()).stream()
-                    .filter(edge -> !explored.contains(edge.getToNode().getId()))
-                    .toList();
+            List<Edge> neighbors = edgeMap.getOrDefault(current.node().getId(), Collections.emptyList()).stream().filter(edge -> !explored.contains(edge.getTo().getId())).toList();
 
             for (Edge edge : neighbors) {
-                Node neighbor = edge.getToNode();
+                Node neighbor = edge.getTo();
 
-                double tentativeGScore = current.getGScore() + edge.getDistance();
-                double complexityScore = current.getComplexityScore() + edge.getComplexity();
+                double tentativeGScore = current.gScore() + edge.getDistance();
+                double complexityScore = current.complexityScore() + edge.getComplexity();
                 double fScore = tentativeGScore + heuristic(neighbor, endNode) + complexityScore;
 
                 if (!gScores.containsKey(neighbor) || tentativeGScore < gScores.get(neighbor)) {
@@ -104,11 +94,11 @@ public class PathfindingService {
         return foundPaths;
     }
 
-    private double heuristic(Node current, Node end) {
+    private double heuristic(Node a, Node b) {
         // Euclidean distance between two nodes
-        Coordinate currentCoord = current.getGeom().getCoordinate();
-        Coordinate endCoord = end.getGeom().getCoordinate();
-        return currentCoord.distance(endCoord);
+        Coordinate aCoordinate = a.getGeom().getCoordinate();
+        Coordinate bCoordinate = b.getGeom().getCoordinate();
+        return aCoordinate.distance(bCoordinate);
     }
 
     private PrecomputedPath reconstructPath(PathNode node) {
@@ -118,10 +108,10 @@ public class PathfindingService {
 
         PathNode current = node;
         while (current != null) {
-            nodeIds.add(0, current.getNode().getId());
-            if (current.getPrevious() != null) {
-                Node fromNode = current.getPrevious().getNode();
-                Node toNode = current.getNode();
+            nodeIds.add(0, current.node().getId());
+            if (current.previous() != null) {
+                Node fromNode = current.previous().node();
+                Node toNode = current.node();
                 Edge edge = graphService.findEdgeByNodes(fromNode, toNode);
 
                 // Ensure the edge is managed and persisted before setting in the precomputed path
@@ -132,16 +122,14 @@ public class PathfindingService {
                 totalDistance += edge.getDistance();
                 totalComplexity += edge.getComplexity();
             }
-            current = current.getPrevious();
+            current = current.previous();
         }
 
         PrecomputedPath precomputedPath = new PrecomputedPath();
-        precomputedPath.setStartNode(nodeMap.get(nodeIds.get(0)));
-        precomputedPath.setEndNode(nodeMap.get(nodeIds.get(nodeIds.size() - 1)));
+        precomputedPath.setStart(nodeMap.get(nodeIds.get(0)));
+        precomputedPath.setEnd(nodeMap.get(nodeIds.get(nodeIds.size() - 1)));
 
-        String nodeIdsString = nodeIds.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
+        String nodeIdsString = nodeIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         precomputedPath.setPath(nodeIdsString);
 
         double totalDistanceRounded = Math.round(totalDistance * 100.0) / 100.0;
@@ -156,39 +144,7 @@ public class PathfindingService {
 
 
     // Helper class to represent a node in the pathfinding algorithm
-    private static class PathNode {
-        private final Node node;
-        private final PathNode previous;
-        private final double gScore;
-        private final double score;
-        private final double complexityScore;
-
-        public PathNode(Node node, PathNode previous, double gScore, double score, double complexityScore) {
-            this.node = node;
-            this.previous = previous;
-            this.gScore = gScore;
-            this.score = score;
-            this.complexityScore = complexityScore;
-        }
-
-        public Node getNode() {
-            return node;
-        }
-
-        public PathNode getPrevious() {
-            return previous;
-        }
-
-        public double getGScore() {
-            return gScore;
-        }
-
-        public double getScore() {
-            return score;
-        }
-
-        public double getComplexityScore() {
-            return complexityScore;
-        }
+    private record PathNode(Node node, PathfindingService.PathNode previous, double gScore, double score,
+                            double complexityScore) {
     }
 }

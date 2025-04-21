@@ -8,38 +8,32 @@ import hopla.routesmart.repository.NodeRepository;
 import hopla.routesmart.repository.ParcelRepository;
 import hopla.routesmart.repository.TripRepository;
 
+import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 @Service
+@RequiredArgsConstructor
 public class SeedService {
-    @Autowired
-    private NodeRepository nodeRepository;
+    private final NodeRepository nodeRepository;
+    private final ParcelRepository parcelRepository;
+    private final TripRepository tripRepository;
 
-    @Autowired
-    private ParcelRepository parcelRepository;
+    private final GraphService graphService;
 
-    @Autowired
-    private TripRepository tripRepository;
-
-
-    @Autowired
-    private GraphService graphService;
-
-    @Autowired
-    private ResourceLoader resourceLoader;
-
-    private GeometryFactory geometryFactory = new GeometryFactory();
+    private final ResourceLoader resourceLoader;
+    private final GeometryFactory geometryFactory = new GeometryFactory();
 
     public void seedNodes(String geoJsonPath) throws IOException {
         Resource resource = resourceLoader.getResource(geoJsonPath);
@@ -102,24 +96,23 @@ public class SeedService {
                 toNode = nodes.get(random.nextInt(nodes.size()));
             }
 
-            parcel.setFromLocation(fromNode);
-            parcel.setToLocation(toNode);
-            parcel.setIdentifier((long) i);
+            parcel.setFrom(fromNode);
+            parcel.setTo(toNode);
 
             parcelRepository.save(parcel);
 
             // Generate random trips
             Trip trip = new Trip();
             fromNode = nodes.get(random.nextInt(nodes.size()));
-            toNode = nodes.get(random.nextInt(nodes.size()));
 
-            while (fromNode.equals(toNode)) {
+            do {
                 toNode = nodes.get(random.nextInt(nodes.size()));
-            }
+            } while (fromNode.equals(toNode));
 
-            trip.setFromLocation(fromNode);
-            trip.setToLocation(toNode);
-            trip.setIdentifier((long) i);
+            trip.setFrom(fromNode);
+            trip.setTo(toNode);
+            trip.setStartTime(LocalDateTime.now());
+            trip.setDuration(Duration.ofHours(1));
 
             tripRepository.save(trip);
         }
