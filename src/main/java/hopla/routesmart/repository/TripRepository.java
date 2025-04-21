@@ -11,7 +11,7 @@ import java.util.List;
 public interface TripRepository extends JpaRepository<Trip, Long> {
     // Retrieves detailed information about trips that match the given start and end node IDs
     String QUERY_FIND_MATCHING_TRIPS = """
-        SELECT t.id AS id, t.from_node AS fromId, t.to_node AS toId
+        SELECT t.id AS id, t.from_node AS fromId, t.to_node AS toId, t.start_time AS startTime, t.duration AS duration
         FROM trip t
         WHERE EXISTS(
             SELECT 1 FROM precomputed_path pp
