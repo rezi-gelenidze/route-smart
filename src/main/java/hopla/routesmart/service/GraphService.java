@@ -1,5 +1,8 @@
 package hopla.routesmart.service;
 
+import hopla.routesmart.dto.EdgeDTO;
+import hopla.routesmart.dto.GraphDTO;
+import hopla.routesmart.dto.NodeDTO;
 import hopla.routesmart.entity.Edge;
 import hopla.routesmart.entity.Node;
 import hopla.routesmart.repository.EdgeRepository;
@@ -56,6 +59,17 @@ public class GraphService {
 
     public List<Edge> getAllEdges() {
         return edgeRepository.findAll();
+    }
+
+
+    public GraphDTO getGraph() {
+        List<Node> nodes = nodeRepository.findAll();
+        List<Edge> edges = edgeRepository.findAll();
+
+        return GraphDTO.from(
+                nodes.stream().map(NodeDTO::from).toList(),
+                edges.stream().map(EdgeDTO::from).toList()
+        );
     }
 
     public Edge findEdgeByNodes(Node fromNode, Node toNode) {
