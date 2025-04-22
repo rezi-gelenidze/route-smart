@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       
@@ -17,6 +19,7 @@ services:
   backend:
     build:
       context: .
+      dockerfile: Dockerfile.dev
     container_name: backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
@@ -27,9 +30,11 @@ services:
       - "8080:8080"
     restart: unless-stopped
     depends_on:
-      - db  # Wait for the db service to be ready before starting the backend service
+      - db
     env_file:
-      - .env  # Load environment variables from the .env
-      
+      - .env
+    volumes:
+      - .:/app
+
 volumes:
   pgdata:
