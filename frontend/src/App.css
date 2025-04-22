@@ -1,0 +1,19 @@
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.map-container {
+    width: 100%;
+    height: 100vh;
+}
+
+.node-icon {
+    margin-top: -5px !important;
+    margin-left: -5px !important;
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #597fc2;
+    border-radius: 50%;
+}
